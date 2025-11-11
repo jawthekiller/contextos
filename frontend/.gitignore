@@ -23,5 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 bundleinspector.html
-.env.production
 flow-typed
