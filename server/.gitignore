@@ -26,5 +26,5 @@ documents
 vector-cache
 yarn-error.log
 
-# Local SSL Certs for HTTPS
+
 sslcert
