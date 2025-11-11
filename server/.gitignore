@@ -15,7 +15,6 @@ storage/plugins/anythingllm_mcp_servers.json
 !storage/documents/DOCUMENTS.md
 storage/direct-uploads
 logs/server.log
-*.db
 *.db-journal
 storage/lancedb
 public/
