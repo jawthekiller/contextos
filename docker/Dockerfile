@@ -161,10 +161,14 @@ USER anythingllm
 FROM backend-build AS production-build
 WORKDIR /app
 COPY --chown=anythingllm:anythingllm --from=frontend-build /app/frontend/dist /app/server/public
+
 USER root
+
+RUN mkdir -p /app/server/storage && chmod -R 777 /app/server/storage
+
 RUN chown -R anythingllm:anythingllm /app/server && \
     chown -R anythingllm:anythingllm /app/collector
-USER anythingllm
+
 
 # Setup the environment
 ENV NODE_ENV=production
