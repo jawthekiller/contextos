@@ -3,10 +3,12 @@ process.env.NODE_ENV === "development"
   : require("dotenv").config();
 
 require("./utils/logger")();
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
+
 const { reqBody } = require("./utils/http");
 const { systemEndpoints } = require("./endpoints/system");
 const { workspaceEndpoints } = require("./endpoints/workspaces");
@@ -30,11 +32,12 @@ const { agentFlowEndpoints } = require("./endpoints/agentFlows");
 const { mcpServersEndpoints } = require("./endpoints/mcpServers");
 const { mobileEndpoints } = require("./endpoints/mobile");
 const { httpLogger } = require("./middleware/httpLogger");
+
 const app = express();
 const apiRouter = express.Router();
 const FILE_LIMIT = "3GB";
 
-// Only log HTTP requests in development mode and if the ENABLE_HTTP_LOGGER environment variable is set to true
+// Optional HTTP request logging in development
 if (
   process.env.NODE_ENV === "development" &&
   !!process.env.ENABLE_HTTP_LOGGER
@@ -45,6 +48,8 @@ if (
     })
   );
 }
+
+// Core middlewares
 app.use(cors({ origin: true }));
 app.use(bodyParser.text({ limit: FILE_LIMIT }));
 app.use(bodyParser.json({ limit: FILE_LIMIT }));
@@ -55,13 +60,10 @@ app.use(
   })
 );
 
-if (!!process.env.ENABLE_HTTPS) {
-  bootSSL(app, process.env.SERVER_PORT || 3001);
-} else {
-  require("@mintplex-labs/express-ws").default(app); // load WebSockets in non-SSL mode.
-}
-
+// Mount API router
 app.use("/api", apiRouter);
+
+// Register API endpoints
 systemEndpoints(apiRouter);
 extensionEndpoints(apiRouter);
 workspaceEndpoints(apiRouter);
@@ -86,6 +88,7 @@ embeddedEndpoints(apiRouter);
 // Externally facing browser extension endpoints
 browserExtensionEndpoints(apiRouter);
 
+// UI / static handling in non-development
 if (process.env.NODE_ENV !== "development") {
   const { MetaGenerator } = require("./utils/boot/MetaGenerator");
   const IndexPage = new MetaGenerator();
@@ -116,6 +119,7 @@ if (process.env.NODE_ENV !== "development") {
     try {
       const VectorDb = getVectorDbClass();
       const { command } = request.params;
+
       if (!Object.getOwnPropertyNames(VectorDb).includes(command)) {
         response.status(500).json({
           message: "invalid interface command",
@@ -129,10 +133,10 @@ if (process.env.NODE_ENV !== "development") {
         const resBody = await VectorDb[command](body);
         response.status(200).json({ ...resBody });
       } catch (e) {
-        // console.error(e)
         console.error(JSON.stringify(e));
         response.status(500).json({ error: e.message });
       }
+
       return;
     } catch (e) {
       console.error(e.message, e);
@@ -141,10 +145,21 @@ if (process.env.NODE_ENV !== "development") {
   });
 }
 
+// Catch-all 404 for anything that didn't match above routes
 app.all("*", function (_, response) {
   response.sendStatus(404);
 });
 
-// In non-https mode we need to boot at the end since the server has not yet
-// started and is `.listen`ing.
-if (!process.env.ENABLE_HTTPS) bootHTTP(app, process.env.SERVER_PORT || 3001);
+// Decide which port to use.
+// On Railway, PORT is injected by the platform.
+const port = process.env.PORT || process.env.SERVER_PORT || 3001;
+
+// Start the server
+if (!!process.env.ENABLE_HTTPS) {
+  // HTTPS mode
+  bootSSL(app, port);
+} else {
+  // HTTP mode with websockets
+  require("@mintplex-labs/express-ws").default(app);
+  bootHTTP(app, port);
+}

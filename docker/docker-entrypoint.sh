@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 # Default STORAGE_DIR if not set
 : "${STORAGE_DIR:=/app/server/storage}"
 
@@ -18,10 +20,11 @@ if [ -z "$STORAGE_DIR" ]; then
     echo "================================================================"
 fi
 
-{
-  cd /app/server/ &&
-    npx prisma generate --schema=./prisma/schema.prisma &&
-    npx prisma migrate deploy --schema=./prisma/schema.prisma &&
-    node /app/server/index.js
-} &
-exit $?
+cd /app/server/
+
+# Run Prisma
+npx prisma generate --schema=./prisma/schema.prisma
+npx prisma migrate deploy --schema=./prisma/schema.prisma
+
+# IMPORTANT: run server in foreground so container stays alive
+exec node /app/server/index.js
