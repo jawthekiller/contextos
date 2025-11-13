@@ -17,8 +17,8 @@ services:
       - SYS_ADMIN
     ports:
       - "3001:3001"
-    #env_file:
-     # - .env
+    env_file:
+      - .env
     networks:
       - anything-llm
     extra_hosts:
