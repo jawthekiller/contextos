@@ -1,13 +1,16 @@
 #!/bin/bash
+set -e
 
-# Send a request to the specified URL
-response=$(curl --write-out '%{http_code}' --silent --output /dev/null http://localhost:3001/api/ping)
+# Use Railway's PORT if set, otherwise fallback to 3001 for local/dev
+PORT="${PORT:-3001}"
+URL="http://localhost:${PORT}/api/ping"
 
-# If the HTTP response code is 200 (OK), the server is up
+response=$(curl --write-out '%{http_code}' --silent --output /dev/null "$URL")
+
 if [ "$response" -eq 200 ]; then
-  echo "Server is up"
+  echo "Server is up on $URL"
   exit 0
 else
-  echo "Server is down"
+  echo "Server is down on $URL (HTTP $response)"
   exit 1
 fi
