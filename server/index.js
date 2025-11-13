@@ -37,6 +37,9 @@ const app = express();
 const apiRouter = express.Router();
 const FILE_LIMIT = "3GB";
 
+// ✅ Make sure app.ws exists (WebSocket support)
+require("@mintplex-labs/express-ws").default(app);
+
 // Optional HTTP request logging in development
 if (
   process.env.NODE_ENV === "development" &&
@@ -63,7 +66,7 @@ app.use(
 // Mount API router
 app.use("/api", apiRouter);
 
-// Register API endpoints
+// Register API endpoints on /api
 systemEndpoints(apiRouter);
 extensionEndpoints(apiRouter);
 workspaceEndpoints(apiRouter);
@@ -74,7 +77,6 @@ inviteEndpoints(apiRouter);
 embedManagementEndpoints(apiRouter);
 utilEndpoints(apiRouter);
 documentEndpoints(apiRouter);
-agentWebsocket(apiRouter);
 experimentalEndpoints(apiRouter);
 developerEndpoints(app, apiRouter);
 communityHubEndpoints(apiRouter);
@@ -88,7 +90,9 @@ embeddedEndpoints(apiRouter);
 // Externally facing browser extension endpoints
 browserExtensionEndpoints(apiRouter);
 
-// UI / static handling in non-development
+// ✅ WebSocket endpoints – use the main app (which now has app.ws)
+agentWebsocket(app);
+
 if (process.env.NODE_ENV !== "development") {
   const { MetaGenerator } = require("./utils/boot/MetaGenerator");
   const IndexPage = new MetaGenerator();
@@ -150,16 +154,13 @@ app.all("*", function (_, response) {
   response.sendStatus(404);
 });
 
-// Decide which port to use.
+// ✅ Decide which port to use.
 // On Railway, PORT is injected by the platform.
 const port = process.env.PORT || process.env.SERVER_PORT || 3001;
 
-// Start the server
+// ✅ Start the server (HTTP or HTTPS)
 if (!!process.env.ENABLE_HTTPS) {
-  // HTTPS mode
   bootSSL(app, port);
 } else {
-  // HTTP mode with websockets
-  require("@mintplex-labs/express-ws").default(app);
   bootHTTP(app, port);
 }
